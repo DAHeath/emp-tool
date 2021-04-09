@@ -47,6 +47,9 @@ public:
 	T * io;
 	block constant[2];
 	MITCCRH<8> mitccrh;
+  std::size_t n_and = 0;
+  std::size_t n_xor = 0;
+
 	HalfGateGen(T * io) :io(io) {
 		block tmp[2];
 		PRG().random_block(tmp, 2);
@@ -54,6 +57,12 @@ public:
 		io->send_block(tmp+1, 1);
 		mitccrh.setS(tmp[1]);
 	}
+  ~HalfGateGen() {
+    std::ofstream outfile;
+    outfile.open("gate_count.txt", std::ios_base::app);
+    outfile << n_and << ' ' << n_xor << '\n';
+  }
+
 	void set_delta(const block & _delta) {
 		delta = set_bit(_delta, 0);
 		PRG().random_block(constant, 2);
@@ -64,12 +73,14 @@ public:
 		return constant[b];
 	}
 	block and_gate(const block& a, const block& b) override {
+    ++n_and;
 		block table[2];
 		block res = halfgates_garble(a, a^delta, b, b^delta, delta, table, &mitccrh);
 		io->send_block(table, 2);
 		return res;
 	}
 	block xor_gate(const block&a, const block& b) override {
+    ++n_xor;
 		return a ^ b;
 	}
 	block not_gate(const block&a) override {
